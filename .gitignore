@@ -35,3 +35,27 @@ override.tf.json
 # Ignore CLI configuration files
 .terraformrc
 terraform.rc
+
+
+# IDE
+.vscode/
+.idea/
+*.swp
+# OS
+.DS_Store
+Thumbs.db
+# Secrets (belt + suspenders)
+.env
+.env.*
+*.pem
+*.key
+# Helm
+charts/*/charts/
+charts/*/Chart.lock
+# Python (for hello-app later)
+__pycache__/
+*.pyc
+.venv/
+venv/
+# Node (for Dify web later if needed)
+node_modules/
