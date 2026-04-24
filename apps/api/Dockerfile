@@ -4,7 +4,7 @@ WORKDIR /app
 
 COPY requirements.txt .
 
-RUN pip install --user --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
 FROM python:3.12-slim
 
@@ -12,12 +12,11 @@ RUN groupadd -r appuser && useradd --no-log-init -r -g appuser appuser
 
 WORKDIR /app
 
-COPY --from=builder /root/.local /home/appuser/.local
+COPY --from=builder /install /usr/local
 COPY --chown=appuser:appuser src/ ./src/
 
 USER appuser
 
-ENV PATH=/home/appuser/.local/bin:$PATH
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 

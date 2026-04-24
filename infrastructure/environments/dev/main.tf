@@ -45,4 +45,6 @@ module "hello_api_wi" {
     "roles/logging.logWriter",
     "roles/monitoring.metricWriter",
   ]
+
+  depends_on = [module.gke]
 }
