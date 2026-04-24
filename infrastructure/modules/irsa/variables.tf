@@ -18,7 +18,7 @@ variable "k8s_service_account" {
   description = "Kubernetes service account name"
 }
 
-variable "role_id" {
-  type        = string
-  description = "IAM role to assign to the GSA"
+variable "role_ids" {
+  type        = list(string)
+  description = "IAM roles to assign to the GSA"
 }

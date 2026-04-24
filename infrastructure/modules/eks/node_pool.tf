@@ -16,20 +16,16 @@ resource "google_container_node_pool" "primary" {
   node_config {
     machine_type = var.node_machine_type
 
-    # Spot VMs — learning discount, ~60-70% cheaper
     spot = true
 
-    # Workload Identity ke liye zaroori — node metadata GKE format mein expose karta hai
     workload_metadata_config {
       mode = "GKE_METADATA"
     }
 
-    # Minimal scopes — actual permissions Workload Identity handle karega
     oauth_scopes = [
       "https://www.googleapis.com/auth/cloud-platform"
     ]
 
-    # Shielded nodes — secure boot + integrity monitoring (security baseline)
     shielded_instance_config {
       enable_secure_boot          = true
       enable_integrity_monitoring = true
