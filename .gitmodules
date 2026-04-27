@@ -1,0 +1,3 @@
+[submodule "apps/dify/chart"]
+	path = apps/dify/chart
+	url = https://github.com/BorisPolonsky/dify-helm
