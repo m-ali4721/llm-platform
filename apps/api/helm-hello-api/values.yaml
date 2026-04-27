@@ -1,0 +1,44 @@
+replicaCount: 1
+containerPort: 8000
+
+image:
+  repository: us-east1-docker.pkg.dev/project-ba3c3f08-4f71-4bf4-b3c/llm-platform/hello-api
+  pullPolicy: IfNotPresent
+  tag: v1.0.0
+
+podSecurityContext:
+  runAsNonRoot: true 
+  runAsUser: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false 
+  readOnlyRootFilesystem: true 
+  capabilities:
+    drop: ["All"]
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+service:
+  type: ClusterIP
+  port: 80
+
+resources:
+  requests:
+    cpu: 100m 
+    memory: 128Mi 
+  limits:
+    cpu: 200m
+    memory: 256Mi
+
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 8000
+readinessProbe:
+  httpGet:
+    path: /health
+    port: 8000
