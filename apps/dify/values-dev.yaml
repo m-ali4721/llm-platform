@@ -10,6 +10,9 @@ ingress:
 
 api:
   replicas: 1
+  persistence:
+    persistentVolumeClaim:
+      storageClass: "nfs"
   resources:
     requests:
       cpu: 200m
