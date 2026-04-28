@@ -21,11 +21,6 @@ api:
       cpu: 500m
       memory: 512Mi
 
-pluginDaemon:
-  persistence:
-    persistentVolumeClaim:
-      storageClass: "nfs"
-
 worker:
   replicas: 1
   resources:
