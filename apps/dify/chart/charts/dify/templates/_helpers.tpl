@@ -1,0 +1,318 @@
+{{/*
+Expand the name of the chart.
+*/}}
+{{- define "dify.name" -}}
+{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{/*
+Create a default fully qualified app name.
+We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
+If release name contains chart name it will be used as a full name.
+*/}}
+{{- define "dify.fullname" -}}
+{{- if .Values.fullnameOverride }}
+{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
+{{- else }}
+{{- $name := default .Chart.Name .Values.nameOverride }}
+{{- if contains $name .Release.Name }}
+{{- .Release.Name | trunc 63 | trimSuffix "-" }}
+{{- else }}
+{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+Create a default fully qualified api name.
+We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
+*/}}
+{{- define "dify.api.fullname" -}}
+{{ template "dify.fullname" . }}-api
+{{- end -}}
+
+{{/*
+Create a default fully qualified worker name.
+We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
+*/}}
+{{- define "dify.worker.fullname" -}}
+{{ template "dify.fullname" . }}-worker
+{{- end -}}
+
+{{/*
+Create a default fully qualified celery beat name.
+We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
+*/}}
+{{- define "dify.beat.fullname" -}}
+{{ template "dify.fullname" . }}-beat
+{{- end -}}
+
+
+{{/*
+Create a default fully qualified web name.
+We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
+*/}}
+{{- define "dify.web.fullname" -}}
+{{ template "dify.fullname" . }}-web
+{{- end -}}
+
+{{/*
+Create a default fully qualified web name.
+We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
+*/}}
+{{- define "dify.sandbox.fullname" -}}
+{{ template "dify.fullname" . }}-sandbox
+{{- end -}}
+
+{{/*
+Create a default fully qualified agentbox name.
+We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
+*/}}
+{{- define "dify.agentbox.fullname" -}}
+{{ template "dify.fullname" . }}-agentbox
+{{- end -}}
+
+{{/*
+dify.agentbox.entrypoint - entrypoint script for agentbox (sshd + socat to API).
+*/}}
+{{- define "dify.agentbox.entrypoint" -}}
+#!/bin/sh
+set -e
+if ! command -v sshd >/dev/null 2>&1; then
+  apt-get update
+  DEBIAN_FRONTEND=noninteractive apt-get install -y openssh-server
+  rm -rf /var/lib/apt/lists/*
+fi
+mkdir -p /run/sshd
+ssh-keygen -A
+if [ "{{ "$" }}AGENTBOX_SSH_USERNAME" = "root" ]; then
+  echo "root:{{ "$" }}AGENTBOX_SSH_PASSWORD" | chpasswd
+  grep -q '^PermitRootLogin' /etc/ssh/sshd_config && sed -i 's/^PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config || echo 'PermitRootLogin yes' >> /etc/ssh/sshd_config
+else
+  id -u "{{ "$" }}AGENTBOX_SSH_USERNAME" >/dev/null 2>&1 || useradd -m -s /bin/bash "{{ "$" }}AGENTBOX_SSH_USERNAME"
+  echo "{{ "$" }}AGENTBOX_SSH_USERNAME:{{ "$" }}AGENTBOX_SSH_PASSWORD" | chpasswd
+fi
+grep -q '^PasswordAuthentication' /etc/ssh/sshd_config && sed -i 's/^PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config || echo 'PasswordAuthentication yes' >> /etc/ssh/sshd_config
+nohup socat TCP-LISTEN:{{ "$" }}{AGENTBOX_SOCAT_TARGET_PORT},bind=127.0.0.1,fork,reuseaddr TCP:{{ "$" }}{AGENTBOX_SOCAT_TARGET_HOST}:{{ "$" }}{AGENTBOX_SOCAT_TARGET_PORT} >/tmp/socat.log 2>&1 &
+exec /usr/sbin/sshd -D -p {{ "$" }}{AGENTBOX_SSH_PORT}
+{{- end -}}
+
+{{/*
+Create a default fully qualified web name.
+We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
+*/}}
+{{- define "dify.ssrfProxy.fullname" -}}
+{{ template "dify.fullname" . }}-ssrf-proxy
+{{- end -}}
+
+{{/*
+Create a default fully qualified nginx name.
+We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
+*/}}
+{{- define "dify.nginx.fullname" -}}
+{{ template "dify.fullname" . }}-proxy
+{{- end -}}
+
+{{/*
+Create a default fully qualified plugin-daemon name.
+We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
+*/}}
+{{- define "dify.pluginDaemon.fullname" -}}
+{{ template "dify.fullname" . }}-plugin-daemon
+{{- end -}}
+
+{{/*
+Create chart name and version as used by the chart label.
+*/}}
+{{- define "dify.chart" -}}
+{{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{/*
+Common labels
+*/}}
+{{- define "dify.labels" -}}
+helm.sh/chart: {{ include "dify.chart" . }}
+{{ include "dify.selectorLabels" . }}
+{{- if .Chart.AppVersion }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- end }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}
+
+{{/* labels defiend by user*/}}
+{{- define "dify.ud.labels" -}}
+{{- if .Values.labels }}
+{{- toYaml .Values.labels }}
+{{- end -}}
+{{- end -}}
+
+{{/* annotations defiend by user*/}}
+{{- define "dify.ud.annotations" -}}
+{{- if .Values.annotations }}
+{{- toYaml .Values.annotations }}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Selector labels
+*/}}
+{{- define "dify.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "dify.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{/*
+Create the name of the service account to use for the Dify API
+*/}}
+{{- define "dify.api.serviceAccountName" -}}
+{{- if .Values.api.serviceAccount.create -}}
+    {{ default (include "dify.api.fullname" .) .Values.api.serviceAccount.name | trunc 63 | trimSuffix "-" }}
+{{- else -}}
+    {{ default "default" .Values.api.serviceAccount.name }}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Create the name of the service account to use for the Proxy
+*/}}
+{{- define "dify.proxy.serviceAccountName" -}}
+{{- if .Values.proxy.serviceAccount.create -}}
+    {{ default (include "dify.nginx.fullname" .) .Values.proxy.serviceAccount.name | trunc 63 | trimSuffix "-" }}
+{{- else -}}
+    {{ default "default" .Values.proxy.serviceAccount.name }}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Create the name of the service account to use for the Sandbox
+*/}}
+{{- define "dify.sandbox.serviceAccountName" -}}
+{{- if .Values.sandbox.serviceAccount.create -}}
+    {{ default (include "dify.sandbox.fullname" .) .Values.sandbox.serviceAccount.name | trunc 63 | trimSuffix "-" }}
+{{- else -}}
+    {{ default "default" .Values.sandbox.serviceAccount.name }}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Create the name of the service account to use for the agentbox
+*/}}
+{{- define "dify.agentbox.serviceAccountName" -}}
+{{- if .Values.agentbox.serviceAccount.create -}}
+    {{ default (include "dify.agentbox.fullname" .) .Values.agentbox.serviceAccount.name | trunc 63 | trimSuffix "-" }}
+{{- else -}}
+    {{ default "default" .Values.agentbox.serviceAccount.name }}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Create the name of the service account to use for the ssrfProxy
+*/}}
+{{- define "dify.ssrfProxy.serviceAccountName" -}}
+{{- if .Values.ssrfProxy.serviceAccount.create -}}
+    {{ default (include "dify.ssrfProxy.fullname" .) .Values.ssrfProxy.serviceAccount.name | trunc 63 | trimSuffix "-" }}
+{{- else -}}
+    {{ default "default" .Values.ssrfProxy.serviceAccount.name }}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Create the name of the service account to use for the Web
+*/}}
+{{- define "dify.web.serviceAccountName" -}}
+{{- if .Values.web.serviceAccount.create -}}
+    {{ default (include "dify.web.fullname" .) .Values.web.serviceAccount.name | trunc 63 | trimSuffix "-" }}
+{{- else -}}
+    {{ default "default" .Values.web.serviceAccount.name }}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Create the name of the service account to use for the Dify Worker
+*/}}
+{{- define "dify.worker.serviceAccountName" -}}
+{{- if .Values.worker.serviceAccount.create -}}
+    {{ default (include "dify.worker.fullname" .) .Values.worker.serviceAccount.name | trunc 63 | trimSuffix "-" }}
+{{- else -}}
+    {{ default "default" .Values.worker.serviceAccount.name }}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Create the name of the service account to use for the celery beat
+*/}}
+{{- define "dify.beat.serviceAccountName" -}}
+{{- if .Values.beat.serviceAccount.create -}}
+    {{ default (include "dify.beat.fullname" .) .Values.beat.serviceAccount.name | trunc 63 | trimSuffix "-" }}
+{{- else -}}
+    {{ default "default" .Values.beat.serviceAccount.name }}
+{{- end -}}
+{{- end -}}
+
+
+{{/*
+Create the name of the service account to use for the Dify Plugin Daemon
+*/}}
+{{- define "dify.pluginDaemon.serviceAccountName" -}}
+{{- if .Values.pluginDaemon.serviceAccount.create -}}
+    {{ default (include "dify.pluginDaemon.fullname" .) .Values.pluginDaemon.serviceAccount.name | trunc 63 | trimSuffix "-" }}
+{{- else -}}
+    {{ default "default" .Values.pluginDaemon.serviceAccount.name }}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Create the Redis fullname following the same logic as the Redis subchart's common.names.fullname.
+This matches the naming convention used by the Bitnami Redis chart.
+Note: This helper should only be called when redis.enabled is true.
+*/}}
+{{- define "dify.redis.fullname" -}}
+{{- if and .Values.redis .Values.redis.fullnameOverride -}}
+{{- .Values.redis.fullnameOverride | trunc 63 | trimSuffix "-" -}}
+{{- else if .Values.redis -}}
+{{- $name := default "redis" .Values.redis.nameOverride -}}
+{{- if contains $name .Release.Name -}}
+{{- .Release.Name | trunc 63 | trimSuffix "-" -}}
+{{- else -}}
+{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+{{- else -}}
+{{- printf "%s-redis" .Release.Name | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Create the PostgreSQL fullname following the same logic as the PostgreSQL subchart's common.names.fullname.
+This matches the naming convention used by the Bitnami PostgreSQL chart.
+Note: This helper should only be called when postgresql.enabled is true.
+*/}}
+{{- define "dify.postgresql.fullname" -}}
+{{- if and .Values.postgresql .Values.postgresql.fullnameOverride }}
+    {{- .Values.postgresql.fullnameOverride | trunc 63 | trimSuffix "-" -}}
+{{- else if .Values.postgresql }}
+    {{- $name := default "postgresql" .Values.postgresql.nameOverride -}}
+    {{- if contains $name .Release.Name }}
+        {{- .Release.Name | trunc 63 | trimSuffix "-" -}}
+    {{- else }}
+        {{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" -}}
+    {{- end -}}
+{{- else }}
+    {{- printf "%s-postgresql" .Release.Name | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Create the PostgreSQL primary fullname following the same logic as the PostgreSQL subchart's postgresql.primary.fullname.
+This matches the service name used by the Bitnami PostgreSQL chart for the primary database service.
+Note: This helper should only be called when postgresql.enabled is true.
+*/}}
+{{- define "dify.postgresql.primary.fullname" -}}
+{{- if eq .Values.postgresql.architecture "replication" }}
+    {{- $fullname := include "dify.postgresql.fullname" . -}}
+    {{- $primaryName := default "primary" .Values.postgresql.primary.name -}}
+    {{- printf "%s-%s" $fullname $primaryName | trunc 63 | trimSuffix "-" -}}
+{{- else -}}
+    {{- include "dify.postgresql.fullname" . -}}
+{{- end -}}
+{{- end -}}
