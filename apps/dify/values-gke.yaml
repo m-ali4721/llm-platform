@@ -1,0 +1,63 @@
+global:
+  host: "34.26.168.37"
+  enableTLS: false
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 15m
+
+api:
+  replicas: 1
+  persistence:
+    persistentVolumeClaim:
+      storageClass: "standard-rwo"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+worker:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+web:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+postgresql:
+  enabled: true
+  architecture: standalone          # no read replica
+  primary:
+    persistence:
+      storageClass: "standard-rwo"
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+
+redis:
+  enabled: true
+  architecture: standalone          # no replicas
+  master:
+    persistence:
+      storageClass: "standard-rwo"
+
+weaviate:
+  enabled: false                    # not needed — plan uses Qdrant
